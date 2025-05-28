@@ -1,4 +1,5 @@
-from typing import List
+import random
+from typing import List, Iterator, Callable, Tuple
 
 ranks = [
     {"name": "암행어사", "condition": lambda c1, c2: [c1.month, c2.month] == [4,7] and (c1.is_yul and c2.is_yul), "score" : 1},
