@@ -1,34 +1,33 @@
 from typing import List
 
 ranks = [
-    {"name": "삼팔광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [3,8] and c1.is_gwang and c2.is_gwang},
-    {"name": "일팔광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [1,8] and c1.is_gwang and c2.is_gwang},
-    {"name": "일삼광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [1,3] and c1.is_gwang and c2.is_gwang},
+    {"name": "암행어사", "condition": lambda c1, c2: [c1.month, c2.month] == [4,7] and (c1.is_yul and c2.is_yul), "score" : 1},
+    {"name": "땡잡이", "condition": lambda c1, c2: [c1.month, c2.month] == [3,7] and (c1.is_gwang and c2.is_yul), "score" : 0}, # +110
+    {"name": "멍텅구리 구사", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 9] and (c1.is_yul and c2.is_yul), "score" : 3}, # 구땡이하 재경기 +110
+    {"name": "구사", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 9] and not(c1.is_yul and c2.is_yul), "score" : 3}, # 
     
-    {"name": "땡", "condition": lambda c1, c2: c1.month == c2.month},
+    {"name": "망통", "condition": lambda c1, c2: (c1.month + c2.month) % 10 == 0, "score" : 0},
+    {"name": "갑오", "condition": lambda c1, c2: (c1.month + c2.month) % 10 == 9, "score" : 9},
+    {"name": "세륙", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 6], "score" : 10},
+    {"name": "장사", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 10], "score" : 11},
+    {"name": "장삥", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 10], "score" : 12},
+    {"name": "구삥", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 9], "score" : 13},
+    {"name": "독사", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 4], "score" : 14},
+    {"name": "알리", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 2], "score" : 15},
     
-    {"name": "알리", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 2]},
-    {"name": "독사", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 4]},
-    {"name": "구삥", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 9]},
-    {"name": "장삥", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 10]},
-    {"name": "장사", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 10]},
-    {"name": "세륙", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 6]},
+    {"name": "땡", "condition": lambda c1, c2: c1.month == c2.month, "score" : 100}, # 장땡 구현하기
     
-    {"name": "갑오", "condition": lambda c1, c2: (c1.month + c2.month) % 10 == 9},
-    {"name": "망통", "condition": lambda c1, c2: (c1.month + c2.month) % 10 == 0},
-
-    {"name": "땡잡이", "condition": lambda c1, c2: [c1.month, c2.month] == [3,7] and (c1.is_gwang and c2.is_yul)},
-    {"name": "구사", "condition": lambda c1, c2: sorted([c1.month, c2.month]) == [4, 9] and (c1.is_yul and c2.is_yul)},
-    {"name": "멍텅구리 구사", "condition": lambda c1, c2: c1.month == 4 and c1.is_yul and c2.month == 9 and c2.is_yul or c2.month == 4 and c2.is_yul and c1.month == 9 and c1.is_yul},
-    {"name": "암행어사", "condition": lambda c1, c2: [c1.month, c2.month] == [4,7] and (c1.is_yul and c2.is_yul)},
+    {"name": "일삼광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [1,3] and c1.is_gwang and c2.is_gwang, "score" : 1000},
+    {"name": "일팔광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [1,8] and c1.is_gwang and c2.is_gwang, "score" : 1100},
+    {"name": "삼팔광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [3,8] and c1.is_gwang and c2.is_gwang, "score" : 1300},
 ]
 
 class GameRoom:
-    def __init__(self, room_name: str,  jokbo : list, max_players: int = 4,):
+    def __init__(self, room_name: str,  jokbo : list, max_players: int = 4):
         self.room_name: str = room_name
         self.max_players: int = max_players
         self.players: List[Player] = []
-        self.deck: Deck = Deck()
+        self.deck = Deck()
         self.started: bool = False
         self.jokbo = jokbo
 
@@ -37,48 +36,98 @@ class GameRoom:
             raise Exception("플레이어 수 초과")
         self.players.append(player)
 
-    def start_game(self) -> None:
-        if len(self.players) < 4:
-            raise Exception("플레이어가 부족합니다.")
-        self.deck.reset()
-        self.deck.shuffle()
-        # 플레이어 카드 분배 (한장씩 두바퀴)
-        for i in range(2):
-            for player in self.players:
-                player.receive_card(self.deck.draw())
-        # 플레이어 카드 month를 기준으로 정렬
+    def start_game(self, is_regame = False, is_test = False) -> None:
+        if is_test : 
+            self.deck.reset()
+            self.deck.shuffle()
+            
+            self.started = True     
+            self.calculate()   
+            if self.get_winner() == "reset" :
+                return self.show_all_hands(), self.show_all_result(), self.get_winner(), self.start_game(is_regame=True)
+            else :
+                return self.show_all_hands(), self.show_all_result(), self.get_winner()
+        if is_regame :
+            self.deck.reset()
+            self.deck.shuffle()
+            for i in range(2): # 플레이어 카드 분배 (한장씩 두바퀴)
+                for player in self.players:
+                    player.receive_card(self.deck.draw())
+            self.started = True     
+            self.calculate()   
+            if self.get_winner() == "reset" :
+                return self.show_all_hands(), self.show_all_result(), self.get_winner(), self.start_game(is_regame=True)
+            else :
+                return self.show_all_hands(), self.show_all_result(), self.get_winner()
+        else :
+            if len(self.players) < 4:
+                raise Exception("플레이어가 부족합니다.")
+            self.deck.reset()
+            self.deck.shuffle()
+            for i in range(2): # 플레이어 카드 분배 (한장씩 두바퀴)
+                for player in self.players:
+                    player.receive_card(self.deck.draw())
+            self.started = True     
+            self.calculate()   
+            if self.get_winner() == "reset" :
+                return self.show_all_hands(), self.show_all_result(), self.get_winner(), self.start_game(is_regame=True)
+            else :
+                return self.show_all_hands(), self.show_all_result(), self.get_winner()
+                
+    def calculate(self) -> None:   
         for player in self.players:
-            player.hand.sort(key=lambda card: card.month)
-        self.started = True
-
-    def calculate_scores(self) -> None:
-        for player in self.players:
+            player.result = None 
+            player.hand.sort(key=lambda card: card.month)      
+            # 땡, 광땡, 중간족보, 특수족보
             for idx, hand in enumerate(self.jokbo) :
                 if hand['condition'](player.hand[0], player.hand[1]):
                     if hand['name'] == "땡" :
-                        player.score = {f"{player.hand[0].month}땡": player.hand[0].month}
+                        if (player.hand[0].month + player.hand[0].month) == 20 :
+                            player.result = ["장땡", player.hand[0].month + hand['score']]
+                        else :
+                            player.result = ["땡", player.hand[0].month + hand['score']]
                     else :
-                        player.score = {hand['name']: idx+1}
-            if not player.score : # 족보에 속하지 않는 경우 (n끗)
-                player.score = {f"{(player.hand[0].month + player.hand[1].month) % 10}끗" : (player.hand[0].month + player.hand[1].month)} 
+                        player.result = [hand['name'], hand['score']]
+                        
+            # 족보에 속하지 않는 경우 : n끗
+            if not player.result : 
+                player.result = ["끗", (player.hand[0].month + player.hand[1].month) % 10]
+                
+            # 어떤 족보에도 속하지 않는경우
+            elif not player.result :
+                raise Exception("점수계산에 오류가 발생했습니다")
+
+    def get_winner(self):
+        player_result = [p.result[0] for p in self.players]
+        sorted_players = sorted( self.players, key=lambda p: p.result[1], reverse=True)
         
-        return {player.name: player.score for player in self.players}
-    
-    def get_winner(self) -> Optional[Player]:
-        self.calculate_scores()
+        if "암행어사" in player_result and set(player_result) & set(["일삼광땡", "일팔광땡"]):
+            plyers[player_result.index("암행어사")].result[1] == 1200
+                    
+        if "땡잡이" in player_result and player_result in "땡" :
+            plyers[player_result.index("땡잡이")].result[1] == 110
+
+        if "멍텅구리 구사" in player_result and sorted_players[0].result[1] <= 1200 :
+            return "reset"
+            
+        if "구사" in player_result and sorted_players[0].result[1] <= 15 :
+            return "reset"
+            
         sorted_players = sorted(
-            [p for p in self.players if p.score is not None],
-            key=lambda p: p.score,
+            self.players,
+            key=lambda p: p.result[1],
             reverse=True
         )
-        if sorted_players :
-            return [hand.show() for hand in sorted_players[0].hand]
+        return sorted_players
 
-    def reset_game(self) -> None:
+    def reset_all_game(self) -> None:
         self.deck.reset()
         for player in self.players:
             player.reset()
         self.started = False
-
+    
     def show_all_hands(self):
         return {player.name: [card.show() for card in player.hand] for player in self.players}
+
+    def show_all_result(self):
+        return {player.name: player.result for player in self.players}
