@@ -1,11 +1,11 @@
 import random
 from typing import List, Iterator, Callable, Tuple
 
-ranks = [
+jokbo = [
     {"name": "암행어사", "condition": lambda c1, c2: [c1.month, c2.month] == [4,7] and (c1.is_yul and c2.is_yul), "score" : 1},
     {"name": "땡잡이", "condition": lambda c1, c2: [c1.month, c2.month] == [3,7] and (c1.is_gwang and c2.is_yul), "score" : 0}, # +110
     {"name": "멍텅구리 구사", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 9] and (c1.is_yul and c2.is_yul), "score" : 3}, # 구땡이하 재경기 +110
-    {"name": "구사", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 9] and not(c1.is_yul and c2.is_yul), "score" : 3}, # 
+    {"name": "구사", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 9] and not(c1.is_yul and c2.is_yul), "score" : 3}, # 알리 이하 재시작
     
     {"name": "망통", "condition": lambda c1, c2: (c1.month + c2.month) % 10 == 0, "score" : 0},
     {"name": "갑오", "condition": lambda c1, c2: (c1.month + c2.month) % 10 == 9, "score" : 9},
@@ -38,42 +38,23 @@ class GameRoom:
         self.players.append(player)
 
     def start_game(self, is_regame = False, is_test = False) -> None:
-        if is_test : 
-            self.deck.reset()
-            self.deck.shuffle()
-            
-            self.started = True     
-            self.calculate()   
-            if self.get_winner() == "reset" :
-                return self.show_all_hands(), self.show_all_result(), self.get_winner(), self.start_game(is_regame=True)
-            else :
-                return self.show_all_hands(), self.show_all_result(), self.get_winner()
-        if is_regame :
-            self.deck.reset()
-            self.deck.shuffle()
+        self.deck.reset()
+        self.deck.shuffle()
+        if is_test :
+            pass  
+        elif is_regame:
             for i in range(2): # 플레이어 카드 분배 (한장씩 두바퀴)
                 for player in self.players:
-                    player.receive_card(self.deck.draw())
-            self.started = True     
-            self.calculate()   
-            if self.get_winner() == "reset" :
-                return self.show_all_hands(), self.show_all_result(), self.get_winner(), self.start_game(is_regame=True)
-            else :
-                return self.show_all_hands(), self.show_all_result(), self.get_winner()
+                    player.receive_card(self.deck.draw()) 
         else :
             if len(self.players) < 4:
                 raise Exception("플레이어가 부족합니다.")
-            self.deck.reset()
-            self.deck.shuffle()
             for i in range(2): # 플레이어 카드 분배 (한장씩 두바퀴)
                 for player in self.players:
                     player.receive_card(self.deck.draw())
-            self.started = True     
-            self.calculate()   
-            if self.get_winner() == "reset" :
-                return self.show_all_hands(), self.show_all_result(), self.get_winner(), self.start_game(is_regame=True)
-            else :
-                return self.show_all_hands(), self.show_all_result(), self.get_winner()
+        self.started = True     
+        self.calculate()   
+        return self.show_all_result(), self.get_winner()
                 
     def calculate(self) -> None:   
         for player in self.players:
@@ -109,17 +90,31 @@ class GameRoom:
             plyers[player_result.index("땡잡이")].result[1] == 110
 
         if "멍텅구리 구사" in player_result and sorted_players[0].result[1] <= 1200 :
-            return "reset"
+            return self.start_game(is_regame=True)
             
         if "구사" in player_result and sorted_players[0].result[1] <= 15 :
-            return "reset"
-            
+            return self.start_game(is_regame=True)
+
+        # 특수 규칙 계산 이후 다시 정렬
         sorted_players = sorted(
             self.players,
             key=lambda p: p.result[1],
             reverse=True
         )
-        return sorted_players
+        
+        # 동점 발생시 게임 재시작
+        winner = sorted_players[0]
+        regame_player = [winner]
+        for p in sorted_players[1:]:
+            if winner.result[1] == p.result[1] :
+                regame_player.append(p)
+
+        if len(regame_player) > 1 :
+            self.players = regame_player
+            return self.start_game(is_regame=True)
+   
+        else : 
+            return f"{winner.name} 우승"
 
     def reset_all_game(self) -> None:
         self.deck.reset()
@@ -131,4 +126,4 @@ class GameRoom:
         return {player.name: [card.show() for card in player.hand] for player in self.players}
 
     def show_all_result(self):
-        return {player.name: player.result for player in self.players}
+        return {player.name: player.result for player in self.players}   
