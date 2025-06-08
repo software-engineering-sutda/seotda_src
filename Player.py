@@ -9,16 +9,11 @@ class Player:
         self.result = None
         self.score = None  # 족보 점수 (비교용)
 
-    def config(self):
-        config ={
-            "name" : self.name,
-            "hand" : self.hand, 
-            "score" : self.score,
-        }
-        return config
+    def __repr__(self) -> str:
+        return f"<Player {self.name}, Hand: {self.hand}>"
 
     def receive_card(self, cards: Card) -> None:
-        """카드 2장을 받는다."""
+        # 카드 2장을 받는다.
         if len(self.hand) == 2 :
             self.hand: List[Card] = []
             self.hand.extend(cards)
@@ -26,11 +21,8 @@ class Player:
             self.hand.extend(cards)
 
     def reset(self) -> None:
-        """새 라운드를 위한 초기화"""
+        # 새 라운드를 위한 초기화
         self.hand.clear()
         self.result = ('', 0)
         self.is_ready = False
         self.score = None
-
-    def __repr__(self) -> str:
-        return f"<Player {self.name}, Hand: {self.hand}>"
