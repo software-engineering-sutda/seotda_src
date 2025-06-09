@@ -2,12 +2,15 @@ import random
 from typing import List, Iterator, Callable, Tuple
 
 jokbo = [
+    {"name": "일삼광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [1,3] and c1.is_gwang and c2.is_gwang, "score" : 1000},
+    {"name": "일팔광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [1,8] and c1.is_gwang and c2.is_gwang, "score" : 1100},
+    {"name": "삼팔광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [3,8] and c1.is_gwang and c2.is_gwang, "score" : 1300},
+    
     {"name": "암행어사", "condition": lambda c1, c2: [c1.month, c2.month] == [4,7] and (c1.is_yul and c2.is_yul), "score" : 1},
     {"name": "땡잡이", "condition": lambda c1, c2: [c1.month, c2.month] == [3,7] and (c1.is_gwang and c2.is_yul), "score" : 0}, # +110
     {"name": "멍텅구리 구사", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 9] and (c1.is_yul and c2.is_yul), "score" : 3}, # 구땡이하 재경기 +110
     {"name": "구사", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 9] and not(c1.is_yul and c2.is_yul), "score" : 3}, # 알리 이하 재시작
     
-    {"name": "망통", "condition": lambda c1, c2: (c1.month + c2.month) % 10 == 0, "score" : 0},
     {"name": "갑오", "condition": lambda c1, c2: (c1.month + c2.month) % 10 == 9, "score" : 9},
     {"name": "세륙", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 6], "score" : 10},
     {"name": "장사", "condition": lambda c1, c2: [c1.month, c2.month] == [4, 10], "score" : 11},
@@ -15,14 +18,10 @@ jokbo = [
     {"name": "구삥", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 9], "score" : 13},
     {"name": "독사", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 4], "score" : 14},
     {"name": "알리", "condition": lambda c1, c2: [c1.month, c2.month] == [1, 2], "score" : 15},
+    {"name": "망통", "condition": lambda c1, c2: (c1.month + c2.month) % 10 == 0, "score" : 0},
     
     {"name": "땡", "condition": lambda c1, c2: c1.month == c2.month, "score" : 100}, # 장땡 구현하기
-    
-    {"name": "일삼광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [1,3] and c1.is_gwang and c2.is_gwang, "score" : 1000},
-    {"name": "일팔광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [1,8] and c1.is_gwang and c2.is_gwang, "score" : 1100},
-    {"name": "삼팔광땡", "condition": lambda c1, c2: [c1.month, c2.month] == [3,8] and c1.is_gwang and c2.is_gwang, "score" : 1300},
 ]
-
 class GameRoom:
     def __init__(self, room_name: str,  jokbo : list, max_players: int = 4):
         self.room_name: str = room_name
@@ -64,12 +63,15 @@ class GameRoom:
             for idx, hand in enumerate(self.jokbo) :
                 if hand['condition'](player.hand[0], player.hand[1]):
                     if hand['name'] == "땡" :
-                        if (player.hand[0].month + player.hand[0].month) == 20 :
+                        if (player.hand[0].month + player.hand[0].month) == 20 : # 10땡은 장땡으로 변경
                             player.result = ["장땡", player.hand[0].month + hand['score']]
+                            break
                         else :
                             player.result = ["땡", player.hand[0].month + hand['score']]
+                            break
                     else :
                         player.result = [hand['name'], hand['score']]
+                        break
                         
             # 족보에 속하지 않는 경우 : n끗
             if not player.result : 
@@ -82,14 +84,13 @@ class GameRoom:
     def get_winner(self):
         player_result = [p.result[0] for p in self.players]
         sorted_players = sorted( self.players, key=lambda p: p.result[1], reverse=True)
-        
         if "암행어사" in player_result and set(player_result) & set(["일삼광땡", "일팔광땡"]):
-            plyers[player_result.index("암행어사")].result[1] == 1200
+            self.players[player_result.index("암행어사")].result[1] = 1200
                     
-        if "땡잡이" in player_result and player_result in "땡" :
-            plyers[player_result.index("땡잡이")].result[1] == 110
-
-        if "멍텅구리 구사" in player_result and sorted_players[0].result[1] <= 1200 :
+        if "땡잡이" in player_result and "땡" in player_result :
+            self.players[player_result.index("땡잡이")].result[1] = 110
+        
+        if "멍텅구리 구사" in player_result and sorted_players[0].result[1] <= 109 :
             return self.start_game(is_regame=True)
             
         if "구사" in player_result and sorted_players[0].result[1] <= 15 :
@@ -104,8 +105,8 @@ class GameRoom:
         
         # 동점 발생시 게임 재시작
         winner = sorted_players[0]
-        regame_player = [winner]
-        for p in sorted_players[1:]:
+        regame_player = []
+        for p in sorted_players:
             if winner.result[1] == p.result[1] :
                 regame_player.append(p)
 
